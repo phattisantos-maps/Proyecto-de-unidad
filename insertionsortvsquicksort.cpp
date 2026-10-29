@@ -1,76 +1,104 @@
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
+#include <chrono>
 using namespace std;
+using namespace chrono;
 
-void insertionSort(int A[],int n){
+void insertionSort(int A[],int n,long long &comparaciones,long long &movimientos){
     for(int i=1;i<n;i++){
         int key=A[i];
         int j=i-1;
-        while(j>=0 && A[j]>key){
-            A[j+1]=A[j];
-            j--;
+        while(j>=0){
+            comparaciones++;
+            if(A[j]>key){
+                A[j+1]=A[j];
+                movimientos++;
+                j--;
+            }else{
+                break;
+            }
         }
         A[j+1]=key;
+        movimientos++;
     }
 }
 
-void Reduce(int A[],int inicio,int final){
+int Reduce(int A[],int inicio,int final,long long &comparaciones,long long &intercambios){
+    int pivote=A[inicio+(final-inicio)/2];
     int izq=inicio;
     int der=final;
-    int pos=izq;
-    int cen=1;
-    while(cen==1){
-        cen=0;
-        while(A[pos]<=A[der] && pos!=der){
-            der=der-1;
+
+    while(izq<=der){
+        while(izq<=final&&A[izq]<pivote){
+            comparaciones++;
+            izq++;
         }
-        if(pos!=der){
-            int aux=A[pos];
-            A[pos]=A[der];
-            A[der]=aux;
-            pos=der;
-            while(A[pos]>=A[izq] && pos!=izq){
-                izq=izq+1;
+        while(der>=inicio&&A[der]>pivote){
+            comparaciones++;
+            der--;
+        }
+        if(izq<=der){
+            if(izq!=der){
+                int aux=A[izq];
+                A[izq]=A[der];
+                A[der]=aux;
+                intercambios++;
             }
-            if(pos!=izq){
-                aux=A[pos];
-                A[pos]=A[izq];
-                A[izq]=aux;
-                pos=izq;
-                cen=1;
-            }
-        }
-        if(pos-1>inicio){
-            Reduce(A,inicio,pos-1);
-        }
-        if(pos+1<final){
-            Reduce(A,pos+1,final);
+            izq++;
+            der--;
         }
     }
+    return izq;
 }
 
-void QuickSort(int A[],int n){
-    Reduce(A,0,n-1);
+void QuickSort(int A[],int inicio,int final,long long &comparaciones,long long &intercambios){
+    if(inicio<final){
+        int pos=Reduce(A,inicio,final,comparaciones,intercambios);
+        QuickSort(A,inicio,pos-1,comparaciones,intercambios);
+        QuickSort(A,pos,final,comparaciones,intercambios);
+    }
 }
 
 int main(){
-    int n=5000;
-    int A1[5000];
-    int A2[5000];
+    const int n=5000;
+    int A1[n];
+    int A2[n];
+
     srand(time(0));
+
     for(int i=0;i<n;i++){
         int val=rand()%10000;
         A1[i]=val;
         A2[i]=val;
     }
-    clock_t t1=clock();
-    insertionSort(A1,n);
-    clock_t t2=clock();
-    cout<<"Insertion Sort tiempo: "<<double(t2-t1)/CLOCKS_PER_SEC<<"s"<<endl;
-    clock_t t3=clock();
-    QuickSort(A2,n);
-    clock_t t4=clock();
-    cout<<"QuickSort tiempo: "<<double(t4-t3)/CLOCKS_PER_SEC<<"s"<<endl;
+
+    long long compIns=0,movIns=0;
+    auto t1=steady_clock::now();
+    insertionSort(A1,n,compIns,movIns);
+    auto t2=steady_clock::now();
+
+    long long compQS=0,intQS=0;
+    auto t3=steady_clock::now();
+    QuickSort(A2,0,n-1,compQS,intQS);
+    auto t4=steady_clock::now();
+
+    double tiempoIns=duration<double,milli>(t2-t1).count();
+    double tiempoQS=duration<double,milli>(t4-t3).count();
+
+    cout<<"===== RESULTADOS ====="<<endl;
+    cout<<"Cantidad de elementos: "<<n<<endl;
+    cout<<"Insertion Sort tiempo: "<<tiempoIns<<" ms"<<endl;
+    cout<<"Comparaciones: "<<compIns<<endl;
+    cout<<"Movimientos: "<<movIns<<endl;
+    cout<<"----------------------"<<endl;
+    cout<<"QuickSort tiempo: "<<tiempoQS<<" ms"<<endl;
+    cout<<"Comparaciones: "<<compQS<<endl;
+    cout<<"Intercambios: "<<intQS<<endl;
+
     return 0;
 }
+
+
+
+
